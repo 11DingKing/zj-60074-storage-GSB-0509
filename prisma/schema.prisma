@@ -1,0 +1,156 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id              String    @id @default(uuid())
+  username        String    @unique
+  password        String
+  email           String?   @unique
+  isAdmin         Boolean   @default(false)
+  storageQuota    BigInt    @default(10737418240)
+  storageUsed     BigInt    @default(0)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  files           File[]
+  folders         Folder[]
+  shareLinks      ShareLink[]
+  operationLogs   OperationLog[]
+  recycleBinItems RecycleBin[]
+  
+  @@map("users")
+}
+
+model File {
+  id              String    @id @default(uuid())
+  name            String
+  originalName    String
+  path            String
+  size            BigInt
+  mimeType        String
+  extension       String?
+  md5             String
+  referenceCount  Int       @default(1)
+  isPublic        Boolean   @default(false)
+  accessControl   String    @default("private")
+  thumbnailPath   String?
+  userId          String
+  folderId        String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  folder          Folder?   @relation(fields: [folderId], references: [id], onDelete: SetNull)
+  shareLinks      ShareLink[]
+  operationLogs   OperationLog[]
+  recycleBinItems RecycleBin[]
+  
+  @@index([md5])
+  @@index([userId])
+  @@index([folderId])
+  @@map("files")
+}
+
+model Folder {
+  id              String    @id @default(uuid())
+  name            String
+  path            String
+  userId          String
+  parentId        String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parent          Folder?       @relation("FolderHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
+  children        Folder[]      @relation("FolderHierarchy")
+  files           File[]
+  recycleBinItems RecycleBin[]
+  
+  @@index([userId])
+  @@index([parentId])
+  @@map("folders")
+}
+
+model ChunkUpload {
+  id              String    @id @default(uuid())
+  uploadId        String    @unique
+  fileName        String
+  totalSize       BigInt
+  totalChunks     Int
+  uploadedChunks  Int       @default(0)
+  chunkHashes     String[]
+  md5             String?
+  userId          String
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  @@index([uploadId])
+  @@index([userId])
+  @@map("chunk_uploads")
+}
+
+model RecycleBin {
+  id              String    @id @default(uuid())
+  itemType        String
+  itemId          String
+  itemName        String
+  itemPath        String
+  itemSize        BigInt    @default(0)
+  userId          String
+  fileId          String?
+  folderId        String?
+  deletedAt       DateTime  @default(now())
+  expireAt        DateTime
+  
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  file            File?     @relation(fields: [fileId], references: [id], onDelete: SetNull)
+  folder          Folder?   @relation(fields: [folderId], references: [id], onDelete: SetNull)
+  
+  @@index([userId])
+  @@index([expireAt])
+  @@map("recycle_bin")
+}
+
+model ShareLink {
+  id              String    @id @default(uuid())
+  token           String    @unique
+  fileId          String
+  userId          String
+  expireAt        DateTime?
+  accessCount     Int       @default(0)
+  maxAccessCount  Int?
+  createdAt       DateTime  @default(now())
+  
+  file            File      @relation(fields: [fileId], references: [id], onDelete: Cascade)
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([token])
+  @@index([expireAt])
+  @@map("share_links")
+}
+
+model OperationLog {
+  id              String    @id @default(uuid())
+  operation       String
+  userId          String
+  fileId          String?
+  fileName        String?
+  filePath        String?
+  ip              String?
+  userAgent       String?
+  createdAt       DateTime  @default(now())
+  
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  file            File?     @relation(fields: [fileId], references: [id], onDelete: SetNull)
+  
+  @@index([userId])
+  @@index([operation])
+  @@index([createdAt])
+  @@map("operation_logs")
+}

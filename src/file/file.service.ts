@@ -254,6 +254,20 @@ export class FileService {
         },
       });
 
+      const otherRefFiles = await prisma.file.findMany({
+        where: {
+          md5: file.md5,
+          id: { not: fileId },
+        },
+      });
+
+      if (otherRefFiles.length > 0) {
+        await prisma.file.update({
+          where: { id: otherRefFiles[0].id },
+          data: { referenceCount: { decrement: 1 } },
+        });
+      }
+
       return prisma.file.delete({
         where: { id: fileId },
       });
@@ -297,6 +311,20 @@ export class FileService {
       });
 
       for (const file of allFiles) {
+        const otherRefFiles = await prisma.file.findMany({
+          where: {
+            md5: file.md5,
+            id: { not: file.id },
+          },
+        });
+
+        if (otherRefFiles.length > 0) {
+          await prisma.file.update({
+            where: { id: otherRefFiles[0].id },
+            data: { referenceCount: { decrement: 1 } },
+          });
+        }
+
         await prisma.file.delete({ where: { id: file.id } });
       }
 

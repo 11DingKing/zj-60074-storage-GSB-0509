@@ -6,6 +6,7 @@ import { AuthModule } from './auth/auth.module';
 import { FileModule } from './file/file.module';
 import { FolderModule } from './folder/folder.module';
 import { UploadModule } from './upload/upload.module';
+import { ChunkUploadModule } from './chunk-upload/chunk-upload.module';
 import { DownloadModule } from './download/download.module';
 import { StorageModule } from './storage/storage.module';
 import { ShareModule } from './share/share.module';
@@ -24,6 +25,7 @@ import { SearchModule } from './search/search.module';
     FileModule,
     FolderModule,
     UploadModule,
+    ChunkUploadModule,
     DownloadModule,
     StorageModule,
     ShareModule,

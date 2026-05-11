@@ -99,23 +99,7 @@ export class RecycleBinService {
 
           if (updatedFile.referenceCount <= 0) {
             await prisma.file.delete({ where: { id: item.itemId } });
-            
-            const userUploadDir = path.join(this.uploadDir, userId);
-            if (fs.existsSync(userUploadDir)) {
-              const files = fs.readdirSync(userUploadDir);
-              for (const f of files) {
-                const filePath = path.join(userUploadDir, f);
-                const stat = fs.statSync(filePath);
-                if (stat.isFile() && BigInt(stat.size) === file.size) {
-                  try {
-                    fs.unlinkSync(filePath);
-                  } catch (e) {
-                    console.error('删除物理文件失败:', e);
-                  }
-                  break;
-                }
-              }
-            }
+            this.deletePhysicalFile(file);
           }
 
           await prisma.recycleBin.delete({ where: { id: itemId } });
@@ -128,6 +112,31 @@ export class RecycleBinService {
     }
 
     return { message: '已永久删除' };
+  }
+
+  private deletePhysicalFile(file: any) {
+    const searchDirs = [
+      path.join(this.uploadDir, file.userId),
+      path.join(this.uploadDir, 'files'),
+    ];
+
+    for (const dir of searchDirs) {
+      if (fs.existsSync(dir)) {
+        const files = fs.readdirSync(dir);
+        for (const f of files) {
+          const filePath = path.join(dir, f);
+          try {
+            const stat = fs.statSync(filePath);
+            if (stat.isFile() && BigInt(stat.size) === file.size) {
+              fs.unlinkSync(filePath);
+              return;
+            }
+          } catch (e) {
+            console.error('删除物理文件失败:', e);
+          }
+        }
+      }
+    }
   }
 
   async emptyRecycleBin(userId: string) {

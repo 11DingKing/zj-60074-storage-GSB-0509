@@ -254,9 +254,18 @@ export class FileService {
         },
       });
 
-      return prisma.file.delete({
+      const updatedFile = await prisma.file.update({
         where: { id: fileId },
+        data: { referenceCount: { decrement: 1 } },
       });
+
+      if (updatedFile.referenceCount <= 0) {
+        return prisma.file.delete({
+          where: { id: fileId },
+        });
+      }
+
+      return updatedFile;
     });
   }
 
